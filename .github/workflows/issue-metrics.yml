@@ -1,8 +1,8 @@
 name: Monthly issue metrics
 on:
     workflow_dispatch:
-    # push:
-    #     branches: [main]
+    push:
+        branches: [main]
 
 permissions:
     contents: read
@@ -21,7 +21,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GH_TOKEN }}
                   NON_MENTIONING_LINKS: true
-                  LABELS_TO_MEASURE: "Backlog,Blocked,Done,orange"
+                  # LABELS_TO_MEASURE: "Backlog,Blocked,Done,orange"
                   SEARCH_QUERY: 'repo:edly-io/edly-team is:issue created:2025-01-01..2025-07-31 -reason:"not planned" (issue in:title OR fail in:title OR bug in:title OR fix in:title OR error in:title)'
             # - name: Create issue
             #   uses: peter-evans/create-issue-from-file@v4

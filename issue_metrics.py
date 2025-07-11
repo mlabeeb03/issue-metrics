@@ -74,6 +74,7 @@ def get_per_issue_metrics(
     num_issues_closed = 0
 
     for issue in issues:
+        print(issue)
         if discussions:
             issue_with_metrics = IssueWithMetrics(
                 issue["title"],
