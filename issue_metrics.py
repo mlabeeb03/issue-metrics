@@ -21,6 +21,7 @@ from typing import List, Union
 
 import github3
 import github3.structs
+
 from auth import auth_to_github, get_github_app_installation_token
 from classes import IssueWithMetrics
 from config import EnvVars, get_env_vars
@@ -31,6 +32,7 @@ from markdown_helpers import markdown_too_large_for_issue_body, split_markdown_f
 from markdown_writer import write_to_markdown
 from most_active_mentors import count_comments_per_user, get_mentor_count
 from search import get_owners_and_repositories, search_issues
+from statuses import get_stats_time_in_statuses, get_status_metrics
 from time_in_draft import get_stats_time_in_draft, measure_time_in_draft
 from time_to_answer import get_stats_time_to_answer, measure_time_to_answer
 from time_to_close import get_stats_time_to_close, measure_time_to_close
@@ -47,6 +49,7 @@ def get_per_issue_metrics(
     env_vars: EnvVars,
     discussions: bool = False,
     labels: Union[List[str], None] = None,
+    statuses: Union[List[str], None] = None,
     ignore_users: Union[List[str], None] = None,
     max_comments_to_eval: int = 20,
     heavily_involved: int = 3,
@@ -171,6 +174,8 @@ def get_per_issue_metrics(
                 )
             if labels and env_vars.hide_label_metrics is False:
                 issue_with_metrics.label_metrics = get_label_metrics(issue, labels)
+            if statuses and env_vars.hide_status_metrics is False:
+                issue_with_metrics.status_metrics = get_status_metrics(issue, statuses)
             if issue.state == "closed":  # type: ignore
                 num_issues_closed += 1
                 if not env_vars.hide_time_to_close:
@@ -239,6 +244,7 @@ def main():  # pragma: no cover
     ignore_users = env_vars.ignore_users
     hide_items_closed_count = env_vars.hide_items_closed_count
     hide_label_metrics = env_vars.hide_label_metrics
+    hide_status_metrics = env_vars.hide_status_metrics
     non_mentioning_links = env_vars.non_mentioning_links
     report_title = env_vars.report_title
     output_file = env_vars.output_file
@@ -284,13 +290,14 @@ def main():  # pragma: no cover
 
     # Determine if there are label to measure
     labels = env_vars.labels_to_measure
+    statuses = env_vars.statuses_to_measure
 
     # Search for issues
     # If type:discussions is in the search_query, search for discussions using get_discussions()
     if "type:discussions" in search_query:
-        if labels:
+        if labels or statuses:
             raise ValueError(
-                "The search query for discussions cannot include labels to measure"
+                "The search query for discussions cannot include labels or statuses to measure"
             )
         issues = get_discussions(token, search_query, ghe)
         if len(issues) <= 0:
@@ -302,12 +309,15 @@ def main():  # pragma: no cover
                 average_time_to_answer=None,
                 average_time_in_draft=None,
                 average_time_in_labels=None,
+                average_time_in_statuses=None,
                 num_issues_opened=None,
                 num_issues_closed=None,
                 num_mentor_count=None,
                 labels=None,
+                statuses=None,
                 search_query=search_query,
                 hide_label_metrics=False,
+                hide_status_metrics=False,
                 hide_items_closed_count=False,
                 enable_mentor_count=enable_mentor_count,
                 non_mentioning_links=False,
@@ -329,12 +339,15 @@ def main():  # pragma: no cover
                 average_time_to_answer=None,
                 average_time_in_draft=None,
                 average_time_in_labels=None,
+                average_time_in_statuses=None,
                 num_issues_opened=None,
                 num_issues_closed=None,
                 num_mentor_count=None,
                 labels=None,
+                statuses=None,
                 search_query=search_query,
                 hide_label_metrics=False,
+                hide_status_metrics=False,
                 hide_items_closed_count=False,
                 enable_mentor_count=enable_mentor_count,
                 non_mentioning_links=False,
@@ -349,6 +362,7 @@ def main():  # pragma: no cover
         issues,
         discussions="type:discussions" in search_query,
         labels=labels,
+        statuses=statuses,
         ignore_users=ignore_users,
         max_comments_to_eval=max_comments_eval,
         heavily_involved=heavily_involved_cutoff,
@@ -370,6 +384,7 @@ def main():  # pragma: no cover
     # Get stats describing the time in label for each label and store it in a dictionary
     # where the key is the label and the value is the average time
     stats_time_in_labels = get_stats_time_in_labels(issues_with_metrics, labels)
+    stats_time_in_statuses = get_stats_time_in_statuses(issues_with_metrics, statuses)
 
     # Write the results to json and a markdown file
     write_to_json(
@@ -379,6 +394,7 @@ def main():  # pragma: no cover
         stats_time_to_answer=stats_time_to_answer,
         stats_time_in_draft=stats_time_in_draft,
         stats_time_in_labels=stats_time_in_labels,
+        stats_time_in_statuses=stats_time_in_statuses,
         num_issues_opened=num_issues_open,
         num_issues_closed=num_issues_closed,
         num_mentor_count=num_mentor_count,
@@ -393,12 +409,15 @@ def main():  # pragma: no cover
         average_time_to_answer=stats_time_to_answer,
         average_time_in_draft=stats_time_in_draft,
         average_time_in_labels=stats_time_in_labels,
+        average_time_in_statuses=stats_time_in_statuses,
         num_issues_opened=num_issues_open,
         num_issues_closed=num_issues_closed,
         num_mentor_count=num_mentor_count,
         labels=labels,
+        statuses=statuses,
         search_query=search_query,
         hide_label_metrics=hide_label_metrics,
+        hide_status_metrics=hide_status_metrics,
         hide_items_closed_count=hide_items_closed_count,
         enable_mentor_count=enable_mentor_count,
         non_mentioning_links=non_mentioning_links,

@@ -33,6 +33,7 @@ def write_to_json(
     stats_time_to_answer: Union[dict[str, timedelta], None],
     stats_time_in_draft: Union[dict[str, timedelta], None],
     stats_time_in_labels: Union[dict[str, dict[str, timedelta]], None],
+    stats_time_in_statuses: Union[dict[str, dict[str, timedelta]], None],
     num_issues_opened: Union[int, None],
     num_issues_closed: Union[int, None],
     num_mentor_count: Union[int, None],
@@ -142,6 +143,17 @@ def write_to_json(
         for label, time in stats_time_in_labels["90p"].items():
             p90_time_in_labels[label] = str(time)
 
+    average_time_in_statuses = {}
+    med_time_in_statuses = {}
+    p90_time_in_statuses = {}
+    if stats_time_in_statuses is not None:
+        for status, time in stats_time_in_statuses["avg"].items():
+            average_time_in_statuses[status] = str(time)
+        for status, time in stats_time_in_statuses["med"].items():
+            med_time_in_statuses[status] = str(time)
+        for status, time in stats_time_in_statuses["90p"].items():
+            p90_time_in_statuses[status] = str(time)
+
     # Create a dictionary with the metrics
     metrics: dict[str, Any] = {
         "average_time_to_first_response": str(average_time_to_first_response),
@@ -149,16 +161,19 @@ def write_to_json(
         "average_time_to_answer": str(average_time_to_answer),
         "average_time_in_draft": str(average_time_in_draft),
         "average_time_in_labels": average_time_in_labels,
+        "average_time_in_statuses": average_time_in_statuses,
         "median_time_to_first_response": str(med_time_to_first_response),
         "median_time_to_close": str(med_time_to_close),
         "median_time_to_answer": str(med_time_to_answer),
         "median_time_in_draft": str(med_time_in_draft),
         "median_time_in_labels": med_time_in_labels,
+        "median_time_in_statuses": med_time_in_statuses,
         "90_percentile_time_to_first_response": str(p90_time_to_first_response),
         "90_percentile_time_to_close": str(p90_time_to_close),
         "90_percentile_time_to_answer": str(p90_time_to_answer),
         "90_percentile_time_in_draft": str(p90_time_in_draft),
         "90_percentile_time_in_labels": p90_time_in_labels,
+        "90_percentile_time_in_statuses": p90_time_in_statuses,
         "num_items_opened": num_issues_opened,
         "num_items_closed": num_issues_closed,
         "num_mentor_count": num_mentor_count,

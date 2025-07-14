@@ -39,7 +39,7 @@ from classes import IssueWithMetrics
 from config import get_env_vars
 
 
-def get_non_hidden_columns(labels) -> List[str]:
+def get_non_hidden_columns(labels, statuses) -> List[str]:
     """
     Get a list of the columns that are not hidden.
 
@@ -83,6 +83,10 @@ def get_non_hidden_columns(labels) -> List[str]:
     if not hide_label_metrics and labels:
         for label in labels:
             columns.append(f"Time spent in {label}")
+    hide_status_metrics = env_vars.hide_status_metrics
+    if not hide_status_metrics and statuses:
+        for status in statuses:
+            columns.append(f"Time spent in {status}")
     hide_created_at = env_vars.hide_created_at
     if not hide_created_at:
         columns.append("Created At")
@@ -101,12 +105,15 @@ def write_to_markdown(
     average_time_to_answer: Union[dict[str, timedelta], None],
     average_time_in_draft: Union[dict[str, timedelta], None],
     average_time_in_labels: Union[dict, None],
+    average_time_in_statuses: Union[dict, None],
     num_issues_opened: Union[int, None],
     num_issues_closed: Union[int, None],
     num_mentor_count: Union[int, None],
     labels=None,
+    statuses=None,
     search_query=None,
     hide_label_metrics=False,
+    hide_status_metrics=False,
     hide_items_closed_count=False,
     enable_mentor_count=False,
     non_mentioning_links=False,
@@ -145,7 +152,7 @@ def write_to_markdown(
         None.
 
     """
-    columns = get_non_hidden_columns(labels)
+    columns = get_non_hidden_columns(labels, statuses)
     output_file_name = output_file if output_file else "issue_metrics.md"
     with open(output_file_name, "w", encoding="utf-8") as file:
         file.write(f"# {report_title}\n\n")
@@ -169,13 +176,16 @@ def write_to_markdown(
             average_time_to_answer,
             average_time_in_draft,
             average_time_in_labels,
+            average_time_in_statuses,
             num_issues_opened,
             num_issues_closed,
             num_mentor_count,
             labels,
+            statuses,
             columns,
             file,
             hide_label_metrics,
+            hide_status_metrics,
             hide_items_closed_count,
             enable_mentor_count,
         )
@@ -230,10 +240,15 @@ def write_to_markdown(
                 file.write(f" {issue.time_to_answer} |")
             if "Time in draft" in columns:
                 file.write(f" {issue.time_in_draft} |")
+            breakpoint()
             if labels and issue.label_metrics:
                 for label in labels:
                     if f"Time spent in {label}" in columns:
                         file.write(f" {issue.label_metrics[label]} |")
+            if statuses and issue.status_metrics:
+                for status in statuses:
+                    if f"Time spent in {status}" in columns:
+                        file.write(f" {issue.status_metrics[status]} |")
             if "Created At" in columns:
                 file.write(f" {issue.created_at} |")
             if "Status" in columns:
@@ -256,13 +271,16 @@ def write_overall_metrics_tables(
     stats_time_to_answer,
     average_time_in_draft,
     stats_time_in_labels,
+    stats_time_in_statuses,
     num_issues_opened,
     num_issues_closed,
     num_mentor_count,
     labels,
+    statuses,
     columns,
     file,
     hide_label_metrics,
+    hide_status_metrics,
     hide_items_closed_count=False,
     enable_mentor_count=False,
 ):
@@ -275,7 +293,7 @@ def write_overall_metrics_tables(
             "Time to answer",
             "Time in draft",
         ]
-    ) or (hide_label_metrics is False and len(labels) > 0):
+    ) or (hide_label_metrics is False and len(labels) > 0) or (hide_status_metrics is False and len(statuses) > 0):
         file.write("| Metric | Average | Median | 90th percentile |\n")
         file.write("| --- | --- | --- | ---: |\n")
         if "Time to first response" in columns:
@@ -333,6 +351,18 @@ def write_overall_metrics_tables(
         if "Status" in columns:  # Add logic for the 'status' column
             file.write("| Status | | | |\n")
 
+        if statuses and stats_time_in_statuses:
+            for label in statuses:
+                if (
+                    f"Time spent in {label}" in columns
+                    and label in stats_time_in_statuses["avg"]
+                ):
+                    file.write(
+                        f"| Time spent in {label} "
+                        f"| {stats_time_in_statuses['avg'][label]} "
+                        f"| {stats_time_in_statuses['med'][label]} "
+                        f"| {stats_time_in_statuses['90p'][label]} |\n"
+                    )
         file.write("\n")
     # Write count stats to a separate table
     file.write("| Metric | Count |\n")

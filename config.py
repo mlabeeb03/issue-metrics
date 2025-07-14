@@ -71,6 +71,7 @@ class EnvVars:
         hide_author: bool,
         hide_items_closed_count: bool,
         hide_label_metrics: bool,
+        hide_status_metrics: bool,
         hide_time_to_answer: bool,
         hide_time_to_close: bool,
         hide_time_to_first_response: bool,
@@ -78,6 +79,7 @@ class EnvVars:
         hide_status: bool,
         ignore_user: List[str],
         labels_to_measure: List[str],
+        statuses_to_measure: List[str],
         enable_mentor_count: bool,
         min_mentor_comments: str,
         max_comments_eval: str,
@@ -97,10 +99,12 @@ class EnvVars:
         self.ghe = ghe
         self.ignore_users = ignore_user
         self.labels_to_measure = labels_to_measure
+        self.statuses_to_measure = statuses_to_measure
         self.hide_assignee = hide_assignee
         self.hide_author = hide_author
         self.hide_items_closed_count = hide_items_closed_count
         self.hide_label_metrics = hide_label_metrics
+        self.hide_status_metrics = hide_status_metrics
         self.hide_time_to_answer = hide_time_to_answer
         self.hide_time_to_close = hide_time_to_close
         self.hide_time_to_first_response = hide_time_to_first_response
@@ -130,6 +134,7 @@ class EnvVars:
             f"{self.hide_author},"
             f"{self.hide_items_closed_count}),"
             f"{self.hide_label_metrics},"
+            f"{self.hide_status_metrics},"
             f"{self.hide_time_to_answer},"
             f"{self.hide_time_to_close},"
             f"{self.hide_time_to_first_response},"
@@ -137,6 +142,7 @@ class EnvVars:
             f"{self.hide_status},"
             f"{self.ignore_users},"
             f"{self.labels_to_measure},"
+            f"{self.statuses_to_measure},"
             f"{self.enable_mentor_count},"
             f"{self.min_mentor_comments},"
             f"{self.max_comments_eval},"
@@ -224,6 +230,11 @@ def get_env_vars(test: bool = False) -> EnvVars:
     if labels_to_measure:
         labels_to_measure_list = labels_to_measure.split(",")
 
+    statuses_to_measure_list: List[str] = []
+    statuses_to_measure: str | None = os.getenv("STATUSES_TO_MEASURE")
+    if statuses_to_measure:
+        statuses_to_measure_list = statuses_to_measure.split(",")
+
     ignore_users_list: List[str] = []
     ignore_users: str | None = os.getenv("IGNORE_USERS")
     if ignore_users:
@@ -239,6 +250,7 @@ def get_env_vars(test: bool = False) -> EnvVars:
     hide_author = get_bool_env_var("HIDE_AUTHOR", False)
     hide_items_closed_count = get_bool_env_var("HIDE_ITEMS_CLOSED_COUNT", False)
     hide_label_metrics = get_bool_env_var("HIDE_LABEL_METRICS", False)
+    hide_status_metrics = get_bool_env_var("HIDE_STATUS_METRICS", False)
     hide_time_to_answer = get_bool_env_var("HIDE_TIME_TO_ANSWER", False)
     hide_time_to_close = get_bool_env_var("HIDE_TIME_TO_CLOSE", False)
     hide_time_to_first_response = get_bool_env_var("HIDE_TIME_TO_FIRST_RESPONSE", False)
@@ -261,6 +273,7 @@ def get_env_vars(test: bool = False) -> EnvVars:
         hide_author,
         hide_items_closed_count,
         hide_label_metrics,
+        hide_status_metrics,
         hide_time_to_answer,
         hide_time_to_close,
         hide_time_to_first_response,
@@ -268,6 +281,7 @@ def get_env_vars(test: bool = False) -> EnvVars:
         hide_status,
         ignore_users_list,
         labels_to_measure_list,
+        statuses_to_measure_list,
         enable_mentor_count,
         min_mentor_comments,
         max_comments_eval,
