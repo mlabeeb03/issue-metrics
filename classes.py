@@ -38,6 +38,7 @@ class IssueWithMetrics:
         time_to_answer=None,
         time_in_draft=None,
         labels_metrics=None,
+        status_metrics=None,
         mentor_activity=None,
         created_at=None,
         assignee=None,
@@ -53,5 +54,6 @@ class IssueWithMetrics:
         self.time_to_answer = time_to_answer
         self.time_in_draft = time_in_draft
         self.label_metrics = labels_metrics
+        self.status_metrics = status_metrics
         self.mentor_activity = mentor_activity
         self.created_at = created_at
