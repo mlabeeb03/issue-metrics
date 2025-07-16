@@ -5,7 +5,6 @@ from typing import List
 
 import github3
 import numpy
-import pytz
 import requests
 from bs4 import BeautifulSoup
 
@@ -33,14 +32,20 @@ def get_status_events(
     json_data = {}
     if script_tag:
         json_data = json.loads(script_tag.string)
+    statused = {}
     if json_data:
         for edge in json_data["payload"]["preloadedQueries"][0]["result"]["data"]["repository"]["issue"]["frontTimelineItems"]["edges"]:
             node = edge["node"]
             if "status" in node:
                 if node["status"] in statuses:         
                     status_events.append({"createdAt": datetime.strptime((node["createdAt"]), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc), "event": "statused", "statusName": node["status"]})
+                    statused[node["status"]] = True
                 if node["previousStatus"] != "" and node["previousStatus"] in statuses:
                     status_events.append({"createdAt": datetime.strptime((node["createdAt"]), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc), "event": "unstatused", "statusName": node["previousStatus"]})
+                    statused[node["previousStatus"]] = False
+    for k, v in statused.items():
+        if v is True:
+            status_events.append({"createdAt": datetime.now(tz=timezone.utc), "event": "unstatused", "statusName": k})
     return status_events
 
 
@@ -57,8 +62,6 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
     """
     status_metrics: dict = {}
     status_events = get_status_events(issue, statuses)
-    for i in status_events:
-        print(i)
     status_last_event_type: dict = {}
 
     for status in statuses:
@@ -73,11 +76,10 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
     # Calculate the time to add or subtract to the time spent in status based on the status events
     for event in status_events:
         # Skip statusing events that have occurred past issue close time
-        if issue.closed_at is not None and (
-            event["createdAt"] > datetime.fromisoformat(issue.closed_at) + timedelta(minutes=5)
-        ):
-            continue
-
+        # if issue.closed_at is not None and (
+        #     event["createdAt"] > datetime.fromisoformat(issue.closed_at) + timedelta(minutes=5)
+        # ):
+        #     continue
         if event["event"] == "statused":
             statused[event["statusName"]] = True
             if event["statusName"] in statuses:
@@ -96,23 +98,22 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
                     event["statusName"]
                 ] += event["createdAt"] - datetime.fromisoformat(issue.created_at)
                 status_last_event_type[event["statusName"]] = "unstatused"
+    # for status in statuses:
+    #     if status in statused:
+    #         # if the issue is closed, add the time from the issue creation to the closed_at time
+    #         if issue.state == "closed":
+    #             status_metrics[status] += datetime.fromisoformat(
+    #                 issue.closed_at
+    #             ) - datetime.fromisoformat(issue.created_at)
+    #         else:
+    #             # skip status if last statusing event is 'unlabled' and issue is still open
+    #             if status_last_event_type[status] == "unstatused":
+    #                 continue
 
-    for status in statuses:
-        if status in statused:
-            # if the issue is closed, add the time from the issue creation to the closed_at time
-            if issue.state == "closed":
-                status_metrics[status] += datetime.fromisoformat(
-                    issue.closed_at
-                ) - datetime.fromisoformat(issue.created_at)
-            else:
-                # skip status if last statusing event is 'unlabled' and issue is still open
-                if status_last_event_type[status] == "unstatused":
-                    continue
-
-                # if the issue is open, add the time from the issue creation to now
-                status_metrics[status] += datetime.now(pytz.utc) - datetime.fromisoformat(
-                    issue.created_at
-                )
+    #             # if the issue is open, add the time from the issue creation to now
+    #             status_metrics[status] += datetime.now(pytz.utc) - datetime.fromisoformat(
+    #                 issue.created_at
+    #             )
     return status_metrics
 
 

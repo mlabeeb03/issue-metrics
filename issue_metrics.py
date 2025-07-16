@@ -188,7 +188,6 @@ def get_per_issue_metrics(
             elif isinstance(issue, dict):  # type: ignore
                 issue_with_metrics.created_at = issue["createdAt"]  # type: ignore
         issues_with_metrics.append(issue_with_metrics)
-
     return issues_with_metrics, num_issues_open, num_issues_closed
 
 
