@@ -240,7 +240,6 @@ def write_to_markdown(
                 file.write(f" {issue.time_to_answer} |")
             if "Time in draft" in columns:
                 file.write(f" {issue.time_in_draft} |")
-            breakpoint()
             if labels and issue.label_metrics:
                 for label in labels:
                     if f"Time spent in {label}" in columns:

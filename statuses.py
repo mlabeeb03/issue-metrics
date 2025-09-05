@@ -31,16 +31,21 @@ def get_status_events(
     soup = BeautifulSoup(html_content, 'html.parser')
     script_tag = soup.find('script', {'type': 'application/json', 'data-target': 'react-app.embeddedData'})
     json_data = {}
+    # statused = {}
     if script_tag:
         json_data = json.loads(script_tag.string)
     if json_data:
         for edge in json_data["payload"]["preloadedQueries"][0]["result"]["data"]["repository"]["issue"]["frontTimelineItems"]["edges"]:
             node = edge["node"]
             if "status" in node:
-                if node["status"] in statuses:         
-                    status_events.append({"createdAt": datetime.strptime((node["createdAt"]), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc), "event": "statused", "statusName": node["status"]})
                 if node["previousStatus"] != "" and node["previousStatus"] in statuses:
                     status_events.append({"createdAt": datetime.strptime((node["createdAt"]), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc), "event": "unstatused", "statusName": node["previousStatus"]})
+                if node["status"] in statuses:         
+                    status_events.append({"createdAt": datetime.strptime((node["createdAt"]), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc), "event": "statused", "statusName": node["status"]})
+                    # statused[node["status"]] = True
+    # for k, v in statused.items():
+    #     if v is True:
+    #         status_events.append({"createdAt": datetime.now(tz=timezone.utc), "event": "unstatused", "statusName": k})
     return status_events
 
 
@@ -57,8 +62,8 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
     """
     status_metrics: dict = {}
     status_events = get_status_events(issue, statuses)
-    for i in status_events:
-        print(i)
+    # for i in status_events:
+    #     print(i)
     status_last_event_type: dict = {}
 
     for status in statuses:
@@ -77,7 +82,9 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
             event["createdAt"] > datetime.fromisoformat(issue.closed_at) + timedelta(minutes=5)
         ):
             continue
-
+        
+        # if event["statusName"] == "Done":
+        #     breakpoint()
         if event["event"] == "statused":
             statused[event["statusName"]] = True
             if event["statusName"] in statuses:
@@ -99,8 +106,13 @@ def get_status_metrics(issue: github3.issues.Issue, statuses: List[str]) -> dict
 
     for status in statuses:
         if status in statused:
+            # if status == "Done":
+            #     breakpoint()
             # if the issue is closed, add the time from the issue creation to the closed_at time
             if issue.state == "closed":
+                # Only add the final (closed_at - created_at) span if if was still in status at closure.
+                if status_last_event_type.get(status) != "statused":
+                    continue
                 status_metrics[status] += datetime.fromisoformat(
                     issue.closed_at
                 ) - datetime.fromisoformat(issue.created_at)
